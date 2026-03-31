@@ -78,7 +78,7 @@ Note: You can skip this step because we already included the collected data file
 * `src/model/toda_lattice/`
 
   * **PH-ICNN:** `NeuralToda_ICNN_params.msgpack`
-  * **Proposed method:** `NeuralToda_NN_dual_sms_params`
+  * **Proposed method:** `NeuralToda_NN_sms_params`
 
 #### Training files
 * `src/toda_lattice/`
