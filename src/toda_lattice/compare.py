@@ -9,7 +9,6 @@ from flax import serialization
 from matplotlib import rcParams
 from scipy.integrate import solve_ivp
 from NeuralToda_ICNN import PHNN as PHNN_ICNN
-from NeuralToda_NN_sms import PHNN as PHNN_SMS
 from NeuralToda_NN_dual_sms import PHNN as PHNN_SMS_dual
 
 
@@ -47,17 +46,6 @@ def build_icnn_params(rng_key, nx):
     )
     return model, params
 
-
-def build_sms_params(rng_key, nx):
-    nncells = cs.nncells
-    model = PHNN_SMS(n=nx, nncells=nncells)
-    params_template = model.init(rng_key, jnp.ones((nx,)), jnp.ones((1,)))['params']
-    params = load_latest_msgpack_params(
-        params_template,
-        os.path.join("model", "NeuralToda_NN_sms_params.msgpack"),
-        "NN-SMS",
-    )
-    return model, params
 
 
 def build_sms_params_dual(rng_key, nx):
@@ -135,13 +123,12 @@ for name in ["pulse", "sin", "step"]:
     icnn_model, icnn_params = build_icnn_params(rng_key, cs.nx)
 
     rng_key, key = jax.random.split(key)
-    sms_model, sms_params = build_sms_params(rng_key, test_X_full.shape[1])
+    # sms_model, sms_params = build_sms_params(rng_key, test_X_full.shape[1])
 
     rng_key, key = jax.random.split(key)
     sms_model_dual, sms_params_dual = build_sms_params_dual(rng_key, test_X_full.shape[1])
 
     icnn_traj = simulate_with_ode(icnn_model, icnn_params, x0, test_Ts, test_DU)
-    sms_traj = simulate_with_ode(sms_model, sms_params, x0, test_Ts, test_DU)
     sms_dual_traj = simulate_with_ode(sms_model_dual, sms_params_dual, x0, test_Ts, test_DU)
 
     def eval_outputs(model, params, x_traj, u_samples, shift = False):
@@ -156,12 +143,10 @@ for name in ["pulse", "sin", "step"]:
         return np.array(y_est), np.array(h_est)
 
     icnn_y, icnn_h = eval_outputs(icnn_model, icnn_params, icnn_traj, test_DU)
-    sms_y, sms_h = eval_outputs(sms_model, sms_params, sms_traj, test_DU, shift =  True)
     sms_dual_y, sms_dual_h = eval_outputs(sms_model_dual, sms_params_dual, sms_dual_traj, test_DU, shift = True)
 
     true_state_norm     = np.linalg.norm(np.array(test_X_full), axis=1)
     icnn_state_norm     = np.linalg.norm(icnn_traj, axis=1)
-    sms_state_norm      = np.linalg.norm(sms_traj, axis=1)
     sms_dual_state_norm = np.linalg.norm(sms_dual_traj, axis=1)
 
     plt.rcParams.update({"font.size": 20})
@@ -171,7 +156,6 @@ for name in ["pulse", "sin", "step"]:
     fig = plt.figure(figsize=(8, 5))
     plt.plot(test_Ts, true_state_norm, label="Actual PHS", color="black")
     plt.plot(test_Ts, icnn_state_norm, label="PH-ICNN", color="blue", linestyle="--")
-    # plt.plot(test_Ts, sms_state_norm,  label="NN_sms", color="green", linestyle="-.")
     plt.plot(test_Ts, sms_dual_state_norm, label="Proposed method", color="orange", linestyle="-.")
     plt.xlabel("Time (seconds)")
     plt.xlim(0, float(test_Ts[-1]))
@@ -193,7 +177,6 @@ for name in ["pulse", "sin", "step"]:
     fig = plt.figure(figsize=(8, 5))
     plt.plot(test_Ts, np.array(test_DY), label="Actual PHS", color="black")
     plt.plot(test_Ts, icnn_y, label="PH-ICNN", color="blue", linestyle="--")
-    # plt.plot(test_Ts, sms_y, label="NN_sms", color="green", linestyle="-.")
     plt.plot(test_Ts, sms_dual_y, label="Proposed method", color="orange", linestyle="-.")
     plt.xlabel("Time (seconds)")
     plt.xlim(0, float(test_Ts[-1]))
@@ -215,7 +198,6 @@ for name in ["pulse", "sin", "step"]:
     fig = plt.figure(figsize=(8, 5))
     plt.plot(test_Ts, np.array(test_H), label="Actual PHS", color="black")
     plt.plot(test_Ts, icnn_h, label="PH-ICNN", color="blue", linestyle="--")
-    # plt.plot(test_Ts, sms_h, label="NN_sms", color="green", linestyle="-.")
     plt.plot(test_Ts, sms_dual_h, label="Proposed method", color="orange", linestyle="-.")
     plt.xlabel("Time (seconds)")
     plt.xlim(0, float(test_Ts[-1]))
