@@ -31,6 +31,7 @@ Pkg.instantiate()
 ```
 
 ### Python environment
+Local Python 3.13.5 virtual environment is suggested.
 
 All Python dependencies are listed in `requirements.txt`.
 
